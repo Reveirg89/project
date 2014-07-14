@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Manuel De Iuliis's final project</title> 
+    <style>
+    
+      body{
+      margin: 0;
+      overflow: hidden;
+    }
+
+    #video {
+      display: none; 
+      position: absolute; 
+      left 10px: 15px; 
+      bottom: 10px;
+    }
+
+    #stats {  /* Align stats top-left */
+      position: absolute;
+      left: 0px;
+      top: 0px;
+    }
+</style>
+  </head>
+<body>
+  <video id="video" src="videos/Roma-Parma.ogv" type='video/ogg; codecs="theora, vorbis"' controls="false" autoplay="true"></video> 
+  <!-- JavaScript libraries -->
+  <script src="jquery-2.1.1.js"></script> 
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r67/three.min.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/stats.js/r11/Stats.min.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5/dat.gui.min.js"></script>
+  <script src="assets/libs/TrackballControls.js"></script>
+  <script src="assets/libs/OBJLoader.js"></script>
+  <script src="assets/libs/tween.min.js"></script>
+  <script type="text/javascript" src="assets/libs/MTLLoader.js"></script>
+  <script type="text/javascript" src="assets/libs/OBJMTLLoader.js"></script> 
+  <script src="assets/libs/PointerLockControls.js"></script>
+  <script src="./utility.js"></script>
+  <script src="./load_walls.js"></script>
+  <script src="./load_floors.js"></script>
+  <script src="./load_intern.js"></script>
+  <script src="./load.js"></script>
+  <script src = "./features.js"></script>
+  <script src = "./FPconfig.js"></script>
+ 
+  <!-- Javascript code that runs our Three.js examples --> 
+  <script>
+    // once everything is loaded, we run our Three.js stuff.
+    $(function () {
+
+      var stats = initStats();
+      var objects = [];
+
+      // create a scene, that will hold all our elements such as objects, cameras and lights.
+      scene = new THREE.Scene();
+      var light = new THREE.DirectionalLight( 0xffffff, 1.5 );
+        light.position.set( 1, 1, 1 );
+        scene.add( light );
+
+        var light = new THREE.DirectionalLight( 0xffffff, 0.75 );
+        light.position.set( -1, - 0.5, -1 );
+        scene.add( light );
+
+        var axisHelper = new THREE.AxisHelper(3);
+      axisHelper.visible = true;
+      scene.add(axisHelper);
+
+      var renderer = new THREE.WebGLRenderer();
+      renderer.setClearColor(new THREE.Color(0xeeeeee, 1.0));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      // create a camera, which defines where we're looking at.
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(-10,50,20);
+
+      
+      home = load_models(2,2,2);   
+       
+      scene.add(home);
+
+  var $video = $('#video');
+  var video = $video[0];
+
+
+
+  videoTexture = new THREE.Texture( video );
+  videoTexture.minFilter = THREE.LinearFilter;
+  videoTexture.magFilter = THREE.LinearFilter;
+  
+  var movieMaterial = new THREE.MeshBasicMaterial( { map: videoTexture, overdraw: true, side:THREE.DoubleSide } );
+  // the geometry on which the movie will be displayed;
+  //    movie image will be scaled to fit these dimensions.
+  var movieGeometry = new THREE.PlaneGeometry( 2, 1, 4, 4 );
+  var movieScreen = new THREE.Mesh( movieGeometry, movieMaterial );
+  movieScreen.position.set(0,0,0);
+  scene.add(movieScreen);
+      
+      trackballControls = new THREE.TrackballControls(camera);
+
+
+       // setup the control gui
+      var options = new function(){
+
+        this.FPCamera = startFP;
+        this.tetto = false;
+        this.snow = false;
+      };
+      var gui = new dat.GUI();
+
+      gui.add(options, "FPCamera");
+      gui.add(options,"tetto");
+      gui.add(options,"snow");
+      
+
+
+
+
+      var projector = new THREE.Projector();
+      render();
+
+      var tube;
+      var mouseVector = new THREE.Vector3();
+
+      window.addEventListener( 'resize', onWindowResize, false );
+      
+
+// per settare la finestra del browser alla situazione quando allarghiamo o restringiamo il browser.
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+      }
+      
+      document.addEventListener('mousedown', onDocumentMouseDown, false);
+
+      function onDocumentMouseDown(event) {
+            event.preventDefault();
+            if (document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element) {
+              var vector = new THREE.Vector3(0, 0, 2);
+              projector.unprojectVector(vector, camera);
+              var raycaster = new THREE.Raycaster(vector,controls.getDirection(new THREE.Vector3(0, 0, 0)).clone());
+           } else {
+              var vector = new THREE.Vector3(( event.clientX / window.innerWidth ) * 2 - 1, -( event.clientY / window.innerHeight ) * 2 + 1, 0.5);
+                  projector.unprojectVector(vector, camera);
+
+                  var raycaster = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
+                  var intersects = raycaster.intersectObjects(oggetti);
+            }
+            var intersects = raycaster.intersectObjects(oggetti);
+            if (intersects.length > 0) 
+            {
+              intersects[0].object.interact();
+            }
+          }
+
+      function render() {
+  
+        stats.update();
+        TWEEN.update();
+        if(FPdisabled)
+        {
+          trackballControls.update();
+        }
+        else
+        {
+          animate();
+        }
+
+        home.arredo.mirror.visible = false;
+        home.arredo.mirror.camera.updateCubeMap( renderer, scene );
+        home.arredo.mirror.visible = true;
+
+        
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+              if (videoTexture) videoTexture.needsUpdate = true;
+          }
+
+        // render using requestAnimationFrame
+
+
+        renderer.render(scene, camera);
+        requestAnimationFrame(render);
+      }
+
+
+       $('body').append(renderer.domElement);
+
+      function initStats() {
+        var stats = new Stats();
+        stats.setMode(0); // 0: fps, 1: ms
+        $('body').append(stats.domElement);
+        return stats;
+      }
+    });
+  </script>  
+ </body>
+</html>
